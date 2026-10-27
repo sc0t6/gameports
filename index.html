@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <title>Ports</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="#">ports</a>
+    <nav>
+      <a href="#" data-view="games">Games</a>
+      <a href="#apps" data-view="apps">Apps</a>
+    </nav>
+    <button id="status" class="status" title="Refresh now" aria-live="polite">Loading…</button>
+  </header>
+
+  <main>
+    <input id="search" type="search" placeholder="Search" aria-label="Search" autocomplete="off">
+    <div id="filters" class="chips" role="group" aria-label="Filter"></div>
+    <p id="message" class="message" hidden></p>
+    <div id="grid" class="grid"></div>
+  </main>
+
+  <footer>
+    Games from <a href="https://github.com/genizy/web-port" target="_blank" rel="noopener">genizy/web-port</a>
+    and the <a href="https://github.com/Carter54git/Ultimate-Catalog-Of-Web-Game-Ports" target="_blank" rel="noopener">Ultimate Catalog of Web Game Ports</a>.
+    Lists refresh every 24 hours. All games belong to their creators and porters.
+  </footer>
+
+  <dialog id="player" class="player" aria-label="Player">
+    <div class="bar">
+      <span id="player-title"></span>
+      <button id="player-full">Fullscreen</button>
+      <a id="player-tab" target="_blank" rel="noopener">New tab</a>
+      <button id="player-close">Close</button>
+    </div>
+    <iframe id="frame" title="Game" allow="fullscreen; autoplay; gamepad; clipboard-write"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-popups allow-modals allow-downloads allow-orientation-lock"></iframe>
+  </dialog>
+
+  <dialog id="publish" class="sheet" aria-labelledby="publish-title">
+    <div class="sheet-head">
+      <h2 id="publish-title"></h2>
+      <button id="publish-close" aria-label="Close">Close</button>
+    </div>
+    <p class="muted">No play link, or it's down? Host the repo yourself with one of these, then play it.</p>
+    <ol id="methods" class="methods"></ol>
+  </dialog>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
