@@ -186,6 +186,17 @@ function classify(status, headers) {
   return blocked ? 'tab' : 'ok';
 }
 
+// <meta property="og:image"> (or twitter:image) from a page's HTML, as an absolute http(s) URL.
+function ogImage(html, base) {
+  const tag = /<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*>/i.exec(html);
+  const src = tag && /content=["']([^"']+)["']/i.exec(tag[0]);
+  if (!src) return '';
+  try {
+    const u = new URL(src[1].replace(/&amp;/g, '&'), base);
+    return /^https?:$/.test(u.protocol) ? u.href : '';
+  } catch { return ''; }
+}
+
 // "https://github.com/o/r/tree/branch/sub/dir" -> parts used by the publish methods.
 function ghParts(url) {
   const m = /^https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/([^/]+)\/?(.*?))?\/?(?:[?#].*)?$/.exec(url || '');

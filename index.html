@@ -9,7 +9,39 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Console home screen, shown for the PlayStation, Xbox and Nintendo themes. The theme CSS lays it out. -->
+  <section id="home" class="home" aria-label="Home">
+    <div class="art" aria-hidden="true"><img id="art" alt="" hidden></div>
+    <div class="top">
+      <span class="avatar" aria-hidden="true"></span>
+      <div class="tabs" role="tablist" data-nav>
+        <button role="tab" data-tab="games">Games</button>
+        <button role="tab" data-tab="apps">Apps</button>
+        <button role="tab" data-tab="movies">Movies</button>
+      </div>
+      <span id="clock" class="clock"></span>
+    </div>
+    <div class="hero">
+      <h1 id="hero-title"></h1>
+      <p id="hero-meta"></p>
+      <div class="hero-actions" data-nav>
+        <button id="hero-play" class="primary">Play</button>
+        <button data-act="library">Library</button>
+      </div>
+    </div>
+    <div id="row" class="row" data-nav></div>
+    <div class="dock" data-nav>
+      <button data-act="library"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Library</span></button>
+      <button data-act="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search</span></button>
+      <button data-act="random"><svg viewBox="0 0 24 24"><path d="M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg><span>Random</span></button>
+      <button data-act="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg><span>Settings</span></button>
+      <a href="https://zipclient.lol" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg><span>Zip Client</span></a>
+    </div>
+    <div class="hints"><span><kbd>←</kbd><kbd>→</kbd> Move</span><span><kbd>Enter</kbd> Start</span><span><kbd>Esc</kbd> Back</span></div>
+  </section>
+
   <header>
+    <button id="home-open" class="status">Home</button>
     <a class="logo" href="#">ports</a>
     <nav>
       <a href="#" data-view="games">Games</a>

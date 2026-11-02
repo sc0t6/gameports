@@ -3,11 +3,11 @@ const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
 
-const ctx = {};
+const ctx = { URL };
 vm.runInNewContext(fs.readFileSync(__dirname + '/data.js', 'utf8'), ctx);
 // vm objects come from another realm; JSON makes them comparable.
 const plain = x => JSON.parse(JSON.stringify(x));
-const { parseGenizy, parseCatalog, merge, diff, ghParts, classify } = ctx;
+const { parseGenizy, parseCatalog, merge, diff, ghParts, classify, ogImage } = ctx;
 
 const genizy = parseGenizy(`
 ## Full Game List + Credits
@@ -61,6 +61,11 @@ assert.strictEqual(classify(200, { 'x-frame-options': 'SAMEORIGIN' }), 'tab');
 assert.strictEqual(classify(200, { 'content-security-policy': "frame-ancestors 'none'" }), 'tab');
 assert.strictEqual(classify(200, { 'content-security-policy': "default-src 'self'; frame-ancestors *" }), 'ok');
 assert.strictEqual(classify(200, { 'content-security-policy': 'frame-ancestors *.example.com' }), 'tab');
+
+assert.strictEqual(ogImage('<meta property="og:image" content="/a.png?x=1&amp;y=2">', 'https://g.io/play/'), 'https://g.io/a.png?x=1&y=2');
+assert.strictEqual(ogImage('<meta content="https://c.dn/b.jpg" name="twitter:image">', 'https://g.io/'), 'https://c.dn/b.jpg');
+assert.strictEqual(ogImage('<meta property="og:image:width" content="1200">', 'https://g.io/'), '');
+assert.strictEqual(ogImage('<meta property="og:image" content="javascript:alert(1)">', 'https://g.io/'), '');
 
 // Optional: parse the live READMEs if they were downloaded next to this file.
 for (const [file, parse] of [['genizy.md', parseGenizy], ['carter.md', parseCatalog]]) {

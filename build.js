@@ -4,18 +4,36 @@
 const fs = require('fs');
 const vm = require('vm');
 
-const { SOURCES, EXTRA_GAMES, APPS, MOVIES, SOFT_DEAD, merge, classify } = vm.runInNewContext(
-  fs.readFileSync(__dirname + '/data.js', 'utf8') + '\n;({ SOURCES, EXTRA_GAMES, APPS, MOVIES, SOFT_DEAD, merge, classify })', {});
+const { SOURCES, EXTRA_GAMES, APPS, MOVIES, SOFT_DEAD, merge, classify, ogImage } = vm.runInNewContext(
+  fs.readFileSync(__dirname + '/data.js', 'utf8') + '\n;({ SOURCES, EXTRA_GAMES, APPS, MOVIES, SOFT_DEAD, merge, classify, ogImage })', { URL });
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 
+// Reads only up to </head>; some game pages are huge.
+async function head(r) {
+  const reader = r.body.getReader();
+  const dec = new TextDecoder();
+  let s = '';
+  while (s.length < 3e5 && !/<\/head>/i.test(s)) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    s += dec.decode(value, { stream: true });
+  }
+  reader.cancel().catch(() => {});
+  return s;
+}
+
+// -> { verdict: 'dead' | 'tab' | 'ok', img: cover art URL or '' }
 async function probe(url) {
   try {
     const r = await fetch(url, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(20000) });
-    r.body?.cancel().catch(() => {});
-    return classify(r.status, Object.fromEntries(r.headers));
+    const verdict = classify(r.status, Object.fromEntries(r.headers));
+    let html = '';
+    if (verdict !== 'dead' && /html/i.test(r.headers.get('content-type') || '')) html = await head(r);
+    else r.body?.cancel().catch(() => {});
+    return { verdict, img: ogImage(html, r.url) };
   } catch {
-    return 'dead';
+    return { verdict: 'dead', img: '' };
   }
 }
 
@@ -25,9 +43,10 @@ async function check(label, items) {
   const dead = [];
   await Promise.all(Array.from({ length: 24 }, async () => {
     for (let g; (g = queue.shift());) {
-      const v = SOFT_DEAD.test(g.play) ? 'dead' : await probe(g.play);
-      if (v === 'dead') { dead.push(`${g.name}  ${g.play}`); g.play = ''; }
-      if (v === 'tab') g.tab = true;
+      const { verdict, img } = SOFT_DEAD.test(g.play) ? { verdict: 'dead' } : await probe(g.play);
+      if (verdict === 'dead') { dead.push(`${g.name}  ${g.play}`); g.play = ''; }
+      if (verdict === 'tab') g.tab = true;
+      if (img) g.img = img;
     }
   }));
   const probed = items.filter(g => g.play).length + dead.length;
