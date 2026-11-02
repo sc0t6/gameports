@@ -7,7 +7,7 @@ const ctx = { URL };
 vm.runInNewContext(fs.readFileSync(__dirname + '/data.js', 'utf8'), ctx);
 // vm objects come from another realm; JSON makes them comparable.
 const plain = x => JSON.parse(JSON.stringify(x));
-const { parseGenizy, parseCatalog, merge, diff, ghParts, classify, ogImage } = ctx;
+const { parseGenizy, parseCatalog, merge, diff, ghParts, classify, ogImage, pageIcon } = ctx;
 
 const genizy = parseGenizy(`
 ## Full Game List + Credits
@@ -66,6 +66,10 @@ assert.strictEqual(ogImage('<meta property="og:image" content="/a.png?x=1&amp;y=
 assert.strictEqual(ogImage('<meta content="https://c.dn/b.jpg" name="twitter:image">', 'https://g.io/'), 'https://c.dn/b.jpg');
 assert.strictEqual(ogImage('<meta property="og:image:width" content="1200">', 'https://g.io/'), '');
 assert.strictEqual(ogImage('<meta property="og:image" content="javascript:alert(1)">', 'https://g.io/'), '');
+
+assert.strictEqual(pageIcon('<link rel="icon" href="/f.ico"><link rel="apple-touch-icon" href="/t.png">', 'https://a.pp/x/'), 'https://a.pp/t.png');
+assert.strictEqual(pageIcon('<link rel="icon" sizes="192x192" href="i192.png">', 'https://a.pp/x/'), 'https://a.pp/x/i192.png');
+assert.strictEqual(pageIcon('<link rel="icon" sizes="32x32" href="i32.png">', 'https://a.pp/'), '');
 
 // Optional: parse the live READMEs if they were downloaded next to this file.
 for (const [file, parse] of [['genizy.md', parseGenizy], ['carter.md', parseCatalog]]) {

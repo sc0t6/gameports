@@ -6,7 +6,8 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
   <title>Ports</title>
-  <link rel="stylesheet" href="style.css">
+  <!-- Bump ?v= on all three files after changing any of them, so browsers never mix old and new copies. -->
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <!-- Console home screen, shown for the PlayStation, Xbox and Nintendo themes. The theme CSS lays it out. -->
@@ -81,6 +82,7 @@
         <p class="muted">Choose a theme</p>
         <div class="themes" data-themes></div>
       </div>
+      <p id="boot-error" class="boot-error" role="alert" hidden></p>
     </div>
   </dialog>
 
@@ -107,6 +109,18 @@
       sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-popups allow-modals allow-downloads allow-orientation-lock"></iframe>
   </dialog>
 
+  <dialog id="details" class="sheet" aria-labelledby="details-title">
+    <div class="details">
+      <div id="details-art" class="details-art"></div>
+      <div>
+        <h2 id="details-title"></h2>
+        <p id="details-meta" class="muted"></p>
+        <div id="details-actions" class="row"></div>
+      </div>
+    </div>
+    <button id="details-close" class="details-close">Close</button>
+  </dialog>
+
   <dialog id="publish" class="sheet" aria-labelledby="publish-title">
     <div class="sheet-head">
       <h2 id="publish-title"></h2>
@@ -116,7 +130,7 @@
     <ol id="methods" class="methods"></ol>
   </dialog>
 
-  <script src="data.js"></script>
-  <script src="app.js"></script>
+  <script src="data.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

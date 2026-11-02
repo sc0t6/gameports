@@ -197,6 +197,19 @@ function ogImage(html, base) {
   } catch { return ''; }
 }
 
+// A site's own app icon (apple-touch-icon, or a declared icon of 96px or more), as an absolute http(s) URL.
+function pageIcon(html, base) {
+  const links = html.match(/<link[^>]+rel=["'][^"']*icon[^"']*["'][^>]*>/gi) || [];
+  const big = links.find(l => /apple-touch-icon/i.test(l))
+    || links.find(l => /sizes=["'](9[6-9]|[1-9]\d{2,})x/i.test(l));
+  const href = big && /href=["']([^"']+)["']/i.exec(big);
+  if (!href) return '';
+  try {
+    const u = new URL(href[1].replace(/&amp;/g, '&'), base);
+    return /^https?:$/.test(u.protocol) ? u.href : '';
+  } catch { return ''; }
+}
+
 // "https://github.com/o/r/tree/branch/sub/dir" -> parts used by the publish methods.
 function ghParts(url) {
   const m = /^https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/tree\/([^/]+)\/?(.*?))?\/?(?:[?#].*)?$/.exec(url || '');
@@ -210,15 +223,21 @@ function readCache() {
 // catalog.json is rebuilt daily by build.js; the cache only feeds the "new" tags and offline use.
 async function loadCatalog() {
   const prev = readCache();
+  // A request that never answers (some school filters hold them) must not keep the loading screen up.
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 10000);
   try {
-    const r = await fetch('catalog.json', { cache: 'no-cache' });
+    const r = await fetch('catalog.json', { cache: 'no-cache', signal: ctl.signal });
     if (!r.ok) throw new Error(`catalog.json: HTTP ${r.status}`);
     const cat = await r.json();
     cat.added = prev && prev.time === cat.time ? prev.added : diff(prev, cat.games, Date.now());
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(cat)); } catch {}
     return cat;
   } catch (e) {
-    if (prev) return { ...prev, error: e.message }; // stale beats nothing
-    throw e;
+    const error = e.name === 'AbortError' ? 'catalog.json timed out' : e.message;
+    if (prev) return { ...prev, error }; // stale beats nothing
+    throw new Error(error);
+  } finally {
+    clearTimeout(timer);
   }
 }

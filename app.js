@@ -1,4 +1,22 @@
 const $ = id => document.getElementById(id);
+
+// The loading screen opens first and always ends. A crash anywhere below, or a failed
+// catalog load, shows the error on it instead of leaving the bar spinning forever.
+function finishBoot(error) {
+  if (!$('boot').hasAttribute('open')) return;
+  $('boot-loading').hidden = true;
+  $('boot-pick').hidden = false;
+  // An index.html cached from an older upload may lack #boot-error.
+  const err = $('boot-error') || $('boot').appendChild(Object.assign(document.createElement('p'), { id: 'boot-error' }));
+  if (error) { err.textContent = `${error} Reload with Ctrl+Shift+R to try again.`; err.hidden = false; }
+  const t = $('boot').querySelector('[aria-pressed="true"]');
+  if (t) t.focus();
+}
+addEventListener('error', e => finishBoot(`Something went wrong: ${e.message}.`));
+addEventListener('unhandledrejection', e => finishBoot(`Something went wrong: ${(e.reason && e.reason.message) || e.reason}.`));
+// Old Safari (< 15.4) has no showModal; an open attribute still shows the screen there.
+if ($('boot').showModal) $('boot').showModal(); else $('boot').setAttribute('open', '');
+
 const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 const host = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
 const ago = t => {
@@ -24,11 +42,13 @@ let tab = 'games'; // home screen tab
 let rowItems = []; // home screen tiles; tiles point into it by index
 let sel = 0;       // selected tile
 
+let recentIds = new Set(); // refreshed on each render
 const isNew = g => !!data && Date.now() - (data.added[g.id] || 0) < 7 * DAY;
 const FILTERS = {
   all: ['All', () => true],
   play: ['Playable', g => g.play],
   repo: ['Repo only', g => !g.play],
+  recent: ['Recent', g => recentIds.has(g.id)],
   new: ['New', isNew],
 };
 const view = () => { const v = location.hash.slice(1); return v in VIEWS ? v : 'games'; };
@@ -46,28 +66,59 @@ function launch(g) {
   $('player').showModal();
 }
 
+/* ---------- Icons ---------- */
+
+const initials = name => name.replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).filter(Boolean)
+  .slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+// Cover art from catalog.json, over a flat colour block with initials (shown when there is no art or it fails to load).
+const art = g => `<span>${esc(initials(g.name))}</span>${g.img ? `<img src="${esc(g.img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}`;
+const hue = g => `--h:${hash(g.id) % 360}`;
+
 /* ---------- Library (the Normal theme, and "Library" in the console themes) ---------- */
 
+// The cover's own action: play it, or for repo-only games, the publish options.
+function go(g) {
+  if (g.play) launch(g);
+  else if (ghParts(g.repo)) publish(g);
+  else open(g.repo, '_blank', 'noopener');
+}
+
 function card(g, i) {
-  const label = view() === 'games' ? 'Play' : 'Open';
-  // Sites that refuse to load inside the player (g.tab) open in a new tab instead.
-  const play = g.play ? `<button class="primary" data-play="${i}"${g.tab ? ' title="Opens in a new tab"' : ''}>${label}</button>` : '';
-  // Publish is also offered next to Play, since some Play links go dead.
-  const publishable = ghParts(g.repo);
-  return `<article class="card">
-    <h3>${esc(g.name)}${isNew(g) ? '<span class="tag">new</span>' : ''}</h3>
-    <p>${esc(g.note || host(g.play || g.repo))}</p>
-    <div class="actions">
-      ${play}
-      ${publishable ? `<button${g.play ? '' : ' class="primary"'} data-publish="${i}">Publish</button>` : ''}
-      ${g.repo ? `<a href="${esc(g.repo)}" target="_blank" rel="noopener">Repo</a>` : ''}
+  const action = g.play ? (view() === 'games' ? 'Play' : 'Open') : ghParts(g.repo) ? 'Publish' : 'Open repo for';
+  const badge = isNew(g) ? '<em class="badge">New</em>' : g.play ? '' : '<em class="badge">Repo</em>';
+  return `<article class="gcard">
+    <button class="cover" data-go="${i}" style="${hue(g)}" aria-label="${action} ${esc(g.name)}">${art(g)}${badge}</button>
+    <div class="gmeta">
+      <div><h3>${esc(g.name)}</h3><p>${esc(g.note || host(g.play || g.repo))}</p></div>
+      <button class="more" data-info="${i}" aria-label="More options for ${esc(g.name)}">⋯</button>
     </div>
   </article>`;
+}
+
+let detail = null; // item shown in the details sheet
+function details(g) {
+  detail = g;
+  const label = view() === 'games' ? 'Play' : 'Open';
+  const link = (href, text) => `<a class="btn" href="${esc(href)}" target="_blank" rel="noopener">${text}</a>`;
+  $('details-art').setAttribute('style', hue(g));
+  $('details-art').innerHTML = art(g);
+  $('details-title').textContent = g.name;
+  $('details-meta').textContent = [g.note || host(g.play || g.repo), g.tab && 'opens in a new tab', isNew(g) && 'new this week']
+    .filter(Boolean).join(' · ');
+  // Publish is also offered next to Play, since some Play links go dead.
+  $('details-actions').innerHTML = [
+    g.play && `<button class="btn primary" data-d="play">${label}</button>`,
+    g.play && !g.tab && link(g.play, 'New tab'),
+    ghParts(g.repo) && `<button class="btn${g.play ? '' : ' primary'}" data-d="publish">Publish</button>`,
+    g.repo && link(g.repo, 'Repo'),
+  ].filter(Boolean).join('');
+  $('details').showModal();
 }
 
 function render() {
   const v = view();
   const games = v === 'games';
+  recentIds = new Set(recent());
   document.querySelectorAll('nav a').forEach(a =>
     a.dataset.view === v ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
   $('search').placeholder = VIEWS[v];
@@ -88,21 +139,18 @@ function render() {
 /* ---------- Console home screen ---------- */
 
 const isHome = () => document.documentElement.dataset.mode === 'home';
-const initials = name => name.replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).filter(Boolean)
-  .slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
 
-// Recently played first, then a different shuffle each day so the row stays fresh.
+// Recently played first, then a different shuffle each day so the row stays fresh,
+// with cover-art games ahead of initials-only ones.
 function rowFor(t) {
   const items = list(t).filter(g => g.play);
   const day = new Date().toDateString();
   const first = recent().map(id => items.find(g => g.id === id)).filter(Boolean);
-  const rest = items.filter(g => !first.includes(g)).sort((a, b) => hash(day + a.id) - hash(day + b.id));
+  const rest = items.filter(g => !first.includes(g)).sort((a, b) => !a.img - !b.img || hash(day + a.id) - hash(day + b.id));
   return [...first, ...rest].slice(0, 30);
 }
 
-// Tiles without cover art get a flat colour block with initials.
-const tile = (g, i) => `<button class="tile-g" data-i="${i}" aria-label="${esc(g.name)}" style="--h:${hash(g.id) % 360}">
-  <span>${esc(initials(g.name))}</span>${g.img ? `<img src="${esc(g.img)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</button>`;
+const tile = (g, i) => `<button class="tile-g" data-i="${i}" aria-label="${esc(g.name)}" style="${hue(g)}">${art(g)}</button>`;
 
 function renderHome() {
   document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
@@ -187,7 +235,7 @@ async function refresh() {
     }
   } catch (e) {
     $('status').textContent = 'Retry';
-    $('message').textContent = `Couldn't load the game list (${e.message}). Click Retry.`;
+    $('message').textContent = `Couldn't load the game list (${e.message}).`;
     $('message').hidden = false;
   }
   render();
@@ -270,9 +318,17 @@ document.addEventListener('click', e => {
 $('grid').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
-  if ('play' in b.dataset) launch(shown[b.dataset.play]);
-  if ('publish' in b.dataset) publish(shown[b.dataset.publish]);
+  if ('go' in b.dataset) go(shown[b.dataset.go]);
+  if ('info' in b.dataset) details(shown[b.dataset.info]);
 });
+$('details-actions').addEventListener('click', e => {
+  const b = e.target.closest('[data-d]');
+  if (!b) return;
+  $('details').close();
+  if (b.dataset.d === 'play') launch(detail);
+  if (b.dataset.d === 'publish') publish(detail);
+});
+$('details-close').addEventListener('click', () => $('details').close());
 $('filters').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) { filter = b.dataset.filter; render(); }
@@ -325,9 +381,4 @@ setInterval(() => data && Date.now() - data.time >= DAY && refresh(), 36e5);
 
 setTheme(THEMES[store.get('ports-theme')] ? store.get('ports-theme') : 'normal');
 render();
-$('boot').showModal();
-refresh().then(() => {
-  $('boot-loading').hidden = true;
-  $('boot-pick').hidden = false;
-  $('boot').querySelector('[aria-pressed="true"]').focus();
-});
+refresh().then(() => finishBoot(data ? '' : $('message').textContent), e => finishBoot(`Something went wrong: ${e.message}.`));
