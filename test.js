@@ -7,7 +7,7 @@ const ctx = {};
 vm.runInNewContext(fs.readFileSync(__dirname + '/data.js', 'utf8'), ctx);
 // vm objects come from another realm; JSON makes them comparable.
 const plain = x => JSON.parse(JSON.stringify(x));
-const { parseGenizy, parseCatalog, merge, diff, ghParts } = ctx;
+const { parseGenizy, parseCatalog, merge, diff, ghParts, classify } = ctx;
 
 const genizy = parseGenizy(`
 ## Full Game List + Credits
@@ -51,6 +51,16 @@ assert.deepStrictEqual(plain(ghParts('https://github.com/genizy/web-port/tree/ma
 assert.deepStrictEqual(plain(ghParts('https://github.com/web-ports/cuphead/')),
   { owner: 'web-ports', repo: 'cuphead', branch: '', path: '' });
 assert.strictEqual(ghParts('https://gitlab.com/a/b'), null);
+
+assert.strictEqual(classify(0, {}), 'dead');
+assert.strictEqual(classify(404, {}), 'dead');
+assert.strictEqual(classify(502, {}), 'dead');
+assert.strictEqual(classify(503, { 'x-frame-options': 'DENY' }), 'ok');
+assert.strictEqual(classify(200, {}), 'ok');
+assert.strictEqual(classify(200, { 'x-frame-options': 'SAMEORIGIN' }), 'tab');
+assert.strictEqual(classify(200, { 'content-security-policy': "frame-ancestors 'none'" }), 'tab');
+assert.strictEqual(classify(200, { 'content-security-policy': "default-src 'self'; frame-ancestors *" }), 'ok');
+assert.strictEqual(classify(200, { 'content-security-policy': 'frame-ancestors *.example.com' }), 'tab');
 
 // Optional: parse the live READMEs if they were downloaded next to this file.
 for (const [file, parse] of [['genizy.md', parseGenizy], ['carter.md', parseCatalog]]) {

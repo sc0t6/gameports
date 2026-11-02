@@ -14,11 +14,18 @@
     <nav>
       <a href="#" data-view="games">Games</a>
       <a href="#apps" data-view="apps">Apps</a>
+      <a href="#movies" data-view="movies">Movies</a>
     </nav>
     <button id="status" class="status" title="Refresh now" aria-live="polite">Loading…</button>
+    <button id="settings-open" class="status">Settings</button>
   </header>
 
   <main>
+    <a class="promo" href="https://zipclient.lol" target="_blank" rel="noopener">
+      <b>Zip Client</b>
+      <span>Free, lightweight Minecraft launcher. Every version, Fabric, Forge, mods and modpacks.</span>
+      <em>Get it at zipclient.lol</em>
+    </a>
     <input id="search" type="search" placeholder="Search" aria-label="Search" autocomplete="off">
     <div id="filters" class="chips" role="group" aria-label="Filter"></div>
     <p id="message" class="message" hidden></p>
@@ -28,11 +35,37 @@
   <footer>
     Games from <a href="https://github.com/genizy/web-port" target="_blank" rel="noopener">genizy/web-port</a>
     and the <a href="https://github.com/Carter54git/Ultimate-Catalog-Of-Web-Game-Ports" target="_blank" rel="noopener">Ultimate Catalog of Web Game Ports</a>.
-    Lists refresh every 24 hours. All games belong to their creators and porters.
+    Links are checked every 24 hours and dead ones removed. All games belong to their creators and porters.
   </footer>
 
+  <dialog id="boot" class="boot" aria-label="Welcome">
+    <div class="boot-inner">
+      <span class="logo">ports</span>
+      <div id="boot-loading">
+        <div class="bar"><i></i></div>
+        <p class="muted">Loading games…</p>
+      </div>
+      <div id="boot-pick" hidden>
+        <p class="muted">Choose a theme</p>
+        <div class="themes" data-themes></div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="settings" class="sheet" aria-labelledby="settings-title">
+    <div class="sheet-head">
+      <h2 id="settings-title">Settings</h2>
+      <button id="settings-close">Close</button>
+    </div>
+    <h3>Theme</h3>
+    <div class="themes" data-themes></div>
+    <h3><label for="tab-title">Tab name</label></h3>
+    <select id="tab-title"></select>
+    <p class="muted">Optional. Changes the name shown on this browser tab.</p>
+  </dialog>
+
   <dialog id="player" class="player" aria-label="Player">
-    <div class="bar">
+    <div class="bar-top">
       <span id="player-title"></span>
       <button id="player-full">Fullscreen</button>
       <a id="player-tab" target="_blank" rel="noopener">New tab</a>
@@ -45,7 +78,7 @@
   <dialog id="publish" class="sheet" aria-labelledby="publish-title">
     <div class="sheet-head">
       <h2 id="publish-title"></h2>
-      <button id="publish-close" aria-label="Close">Close</button>
+      <button id="publish-close">Close</button>
     </div>
     <p class="muted">No play link, or it's down? Host the repo yourself with one of these, then play it.</p>
     <ol id="methods" class="methods"></ol>
