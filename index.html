@@ -1,136 +1,242 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="playstation" data-mode="home">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#000000">
-  <title>Ports</title>
-  <!-- Bump ?v= on all three files after changing any of them, so browsers never mix old and new copies. -->
-  <link rel="stylesheet" href="style.css?v=5">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#04070d">
+<meta name="description" content="ports — your browser is the console. 888 web game ports, apps and free movies, in one dashboard. No installs, no accounts.">
+<title>ports</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<script>
+(function () {
+  var t; try { t = localStorage.getItem('gp-theme'); } catch (e) {}
+  var ok = { normal: 1, playstation: 1, xbox: 1, nintendo: 1 };
+  document.documentElement.dataset.theme = ok[t] ? t : 'playstation';
+  document.documentElement.dataset.mode = (ok[t] ? t : 'playstation') === 'normal' ? 'library' : 'home';
+  var ti; try { ti = localStorage.getItem('gp-title'); } catch (e) {}
+  if (ti) document.title = ti;
+})();
+</script>
+<link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <!-- Console home screen, shown for the PlayStation, Xbox and Nintendo themes. The theme CSS lays it out. -->
-  <section id="home" class="home" aria-label="Home">
-    <div class="art" aria-hidden="true"><img id="art" alt="" hidden></div>
-    <div class="top">
-      <span class="avatar" aria-hidden="true"></span>
-      <div class="tabs" role="tablist" data-nav>
-        <button role="tab" data-tab="games">Games</button>
-        <button role="tab" data-tab="apps">Apps</button>
-        <button role="tab" data-tab="movies">Movies</button>
-      </div>
-      <span id="clock" class="clock"></span>
-    </div>
-    <div class="hero">
-      <h1 id="hero-title"></h1>
-      <p id="hero-meta"></p>
-      <div class="hero-actions" data-nav>
-        <button id="hero-play" class="primary">Play</button>
-        <button data-act="library">Library</button>
-      </div>
-    </div>
-    <div id="row" class="row" data-nav></div>
-    <div class="dock" data-nav>
-      <button data-act="library"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Library</span></button>
-      <button data-act="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search</span></button>
-      <button data-act="random"><svg viewBox="0 0 24 24"><path d="M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg><span>Random</span></button>
-      <button data-act="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg><span>Settings</span></button>
-      <a href="https://zipclient.lol" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg><span>Zip Client</span></a>
-    </div>
-    <div class="hints"><span><kbd>←</kbd><kbd>→</kbd> Move</span><span><kbd>Enter</kbd> Start</span><span><kbd>Esc</kbd> Back</span></div>
-  </section>
 
-  <header>
-    <button id="home-open" class="status">Home</button>
-    <a class="logo" href="#">ports</a>
-    <nav>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2.5"/><rect x="13" y="3" width="8" height="8" rx="2.5" opacity=".55"/><rect x="3" y="13" width="8" height="8" rx="2.5" opacity=".55"/><rect x="13" y="13" width="8" height="8" rx="4"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5 9.5V21h5v-6h4v6h5V9.5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-zip" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.8 6.3.8-4.6 4.3 1.2 6.1-5.6-3.1-5.6 3.1 1.2-6.1L3 9.6l6.3-.8z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14M20 14v6H4V4h6"/></symbol>
+  <symbol id="i-pad" viewBox="0 0 24 24"><path d="M6 9h12a4 4 0 0 1 4 4v3a3 3 0 0 1-5.2 2L15 16H9l-1.8 2A3 3 0 0 1 2 16v-3a4 4 0 0 1 4-4z"/><path d="M8 12v3M6.5 13.5h3M15.5 12.5v.5M18 14v.5"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
+  <symbol id="i-vol-x" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12.5 5.5 5.5L20 6.5"/></symbol>
+</svg>
+
+<!-- ============ CONSOLE HOME ============ -->
+<section id="home" class="home" aria-label="Console home">
+  <div class="ambient" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="grain"></i></div>
+  <div class="hero-art" aria-hidden="true"><img id="art-a" alt="" referrerpolicy="no-referrer"><img id="art-b" alt="" referrerpolicy="no-referrer"></div>
+
+  <div class="top">
+    <span class="brand"><svg class="lg"><use href="#i-logo"/></svg>ports</span>
+    <div class="tabs" role="tablist" aria-label="Categories" data-nav>
+      <button role="tab" data-tab="games" aria-selected="true">Games</button>
+      <button role="tab" data-tab="apps" aria-selected="false">Apps</button>
+      <button role="tab" data-tab="movies" aria-selected="false">Movies</button>
+    </div>
+    <div class="top-right">
+      <button class="iconbtn" data-sound aria-label="Mute sounds" aria-pressed="false"><svg><use href="#i-vol"/></svg></button>
+      <span id="clock" class="clock"></span>
+      <span class="avatar" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <p class="hero-kicker" id="hero-kicker"></p>
+    <h1 id="hero-title"></h1>
+    <p class="hero-meta" id="hero-meta"></p>
+    <div class="hero-actions" data-nav>
+      <button id="hero-play" class="btn primary big"><svg class="fill"><use href="#i-play"/></svg><span>Play</span></button>
+      <button id="hero-info" class="btn big ghost"><svg><use href="#i-info"/></svg><span>Details</span></button>
+      <button id="hero-fav" class="btn big ghost only-icon" aria-label="Add to favorites" aria-pressed="false"><svg><use href="#i-star"/></svg></button>
+    </div>
+  </div>
+
+  <div id="row" class="row" data-nav aria-label="Quick launch"></div>
+
+  <div class="dock" data-nav>
+    <button data-act="library"><svg><use href="#i-grid"/></svg><span>Library</span></button>
+    <button data-act="search"><svg><use href="#i-search"/></svg><span>Search</span></button>
+    <button data-act="random"><svg><use href="#i-shuffle"/></svg><span>Random</span></button>
+    <button data-act="settings"><svg><use href="#i-gear"/></svg><span>Settings</span></button>
+    <a href="https://zipclient.lol" target="_blank" rel="noopener"><svg><use href="#i-zip"/></svg><span>Zip Client</span></a>
+  </div>
+
+  <div class="hints">
+    <span><kbd>←</kbd><kbd>→</kbd> Move</span>
+    <span><kbd>Enter</kbd> Start</span>
+    <span><kbd>Esc</kbd> Back</span>
+    <span id="pad-hint" hidden><svg class="padico"><use href="#i-pad"/></svg><kbd>A</kbd> Start <kbd>B</kbd> Back</span>
+  </div>
+</section>
+
+<!-- ============ LIBRARY ============ -->
+<div id="lib" class="lib">
+  <header id="lib-head">
+    <button id="home-open" class="iconbtn" aria-label="Back to home"><svg><use href="#i-home"/></svg></button>
+    <a class="brand" href="#" id="lib-brand"><svg class="lg"><use href="#i-logo"/></svg>ports</a>
+    <nav class="lib-nav" aria-label="Categories">
       <a href="#" data-view="games">Games</a>
       <a href="#apps" data-view="apps">Apps</a>
       <a href="#movies" data-view="movies">Movies</a>
     </nav>
-    <button id="status" class="status" title="Refresh now" aria-live="polite">Loading…</button>
-    <button id="settings-open" class="status">Settings</button>
+    <div class="head-right">
+      <button class="iconbtn" data-sound aria-label="Mute sounds" aria-pressed="false"><svg><use href="#i-vol"/></svg></button>
+      <button id="settings-open" class="iconbtn" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
+    </div>
+    <div class="searchwrap">
+      <svg class="s-ico"><use href="#i-search"/></svg>
+      <input id="search" type="search" placeholder="Search games…" aria-label="Search" autocomplete="off">
+      <kbd class="s-kbd">/</kbd>
+    </div>
   </header>
 
-  <main>
+  <div class="lib-body">
     <a class="promo" href="https://zipclient.lol" target="_blank" rel="noopener">
-      <b>Zip Client</b>
-      <span>Free, lightweight Minecraft launcher. Every version, Fabric, Forge, mods and modpacks.</span>
+      <svg class="p-ico"><use href="#i-zip"/></svg>
+      <span class="p-txt"><b>Zip Client</b><span>Free, lightweight Minecraft launcher. Every version, Fabric, Forge, mods and modpacks.</span></span>
       <em>Get it at zipclient.lol</em>
     </a>
-    <input id="search" type="search" placeholder="Search" aria-label="Search" autocomplete="off">
-    <div id="filters" class="chips" role="group" aria-label="Filter"></div>
+
+    <div class="toolbar">
+      <div id="filters" class="chips" role="group" aria-label="Filter"></div>
+      <div class="tool-right">
+        <label class="sortlabel">Sort
+          <select id="sort" aria-label="Sort by">
+            <option value="name">Name A–Z</option>
+            <option value="recent">Recently played</option>
+            <option value="play">Playable first</option>
+          </select>
+        </label>
+        <span id="count" class="count"></span>
+      </div>
+    </div>
+
     <p id="message" class="message" hidden></p>
     <div id="grid" class="grid"></div>
-  </main>
 
-  <footer>
-    Games from <a href="https://github.com/genizy/web-port" target="_blank" rel="noopener">genizy/web-port</a>
-    and the <a href="https://github.com/Carter54git/Ultimate-Catalog-Of-Web-Game-Ports" target="_blank" rel="noopener">Ultimate Catalog of Web Game Ports</a>.
-    Links are checked every 24 hours and dead ones removed. All games belong to their creators and porters.
-  </footer>
+    <footer>
+      <p id="status" class="statusline"></p>
+      <p>Games from <a href="https://github.com/genizy/web-port" target="_blank" rel="noopener">genizy/web-port</a>
+      and the <a href="https://github.com/Carter54git/Ultimate-Catalog-Of-Web-Game-Ports" target="_blank" rel="noopener">Ultimate Catalog of Web Game Ports</a>.
+      All games belong to their creators and porters. Everything on this page loads from this site alone — ad blockers welcome.</p>
+    </footer>
+  </div>
+</div>
 
-  <dialog id="boot" class="boot" aria-label="Welcome">
-    <div class="boot-inner">
-      <span class="logo">ports</span>
-      <div id="boot-loading">
-        <div class="bar"><i></i></div>
-        <p class="muted">Loading games…</p>
-      </div>
-      <div id="boot-pick" hidden>
-        <p class="muted">Choose a theme</p>
-        <div class="themes" data-themes></div>
-      </div>
-      <p id="boot-error" class="boot-error" role="alert" hidden></p>
+<!-- ============ BOOT ============ -->
+<dialog id="boot" class="boot" aria-label="Welcome">
+  <div class="boot-inner">
+    <span class="boot-logo"><svg class="lg"><use href="#i-logo"/></svg>ports</span>
+    <p class="boot-tag">Your browser is the console.</p>
+    <div id="boot-loading">
+      <div class="bar"><i></i></div>
+      <p class="muted">Warming up…</p>
     </div>
-  </dialog>
-
-  <dialog id="settings" class="sheet" aria-labelledby="settings-title">
-    <div class="sheet-head">
-      <h2 id="settings-title">Settings</h2>
-      <button id="settings-close">Close</button>
+    <div id="boot-pick" hidden>
+      <p class="muted">Choose your console</p>
+      <div class="themes" data-themes></div>
     </div>
-    <h3>Theme</h3>
-    <div class="themes" data-themes></div>
-    <h3><label for="tab-title">Tab name</label></h3>
-    <select id="tab-title"></select>
-    <p class="muted">Optional. Changes the name shown on this browser tab.</p>
-  </dialog>
+    <p id="boot-error" class="boot-error" role="alert" hidden></p>
+  </div>
+</dialog>
 
-  <dialog id="player" class="player" aria-label="Player">
-    <div class="bar-top">
-      <span id="player-title"></span>
-      <button id="player-full">Fullscreen</button>
-      <a id="player-tab" target="_blank" rel="noopener">New tab</a>
-      <button id="player-close">Close</button>
-    </div>
+<!-- ============ SETTINGS ============ -->
+<dialog id="settings" class="sheet" aria-labelledby="settings-title">
+  <div class="sheet-head">
+    <h2 id="settings-title">Settings</h2>
+    <button class="iconbtn" data-close="settings" aria-label="Close settings"><svg><use href="#i-x"/></svg></button>
+  </div>
+  <h3>Console theme</h3>
+  <div class="themes" data-themes></div>
+  <h3>Experience</h3>
+  <div class="prefs">
+    <label class="switch"><span>Remote cover art<small>Procedural covers stay when art is blocked or offline.</small></span><input type="checkbox" id="pref-covers" checked><i class="track"></i></label>
+    <label class="switch"><span>Reduced motion<small>Calms transitions, ambient drift and tile glow.</small></span><input type="checkbox" id="pref-motion"><i class="track"></i></label>
+  </div>
+  <h3><label for="tab-title">Tab name</label></h3>
+  <select id="tab-title"></select>
+  <p class="muted">Optional. Changes the name shown on this browser tab.</p>
+</dialog>
+
+<!-- ============ PLAYER ============ -->
+<dialog id="player" class="player" aria-label="Player">
+  <div class="bar-top">
+    <span class="p-title"><b id="player-title"></b><small id="player-host"></small></span>
+    <button id="player-reload" class="btn tiny"><svg><use href="#i-refresh"/></svg>Reload</button>
+    <button id="player-help" class="btn tiny"><svg><use href="#i-info"/></svg>Not loading?</button>
+    <button id="player-full" class="btn tiny"><svg><use href="#i-expand"/></svg>Fullscreen</button>
+    <a id="player-tab" class="btn tiny" target="_blank" rel="noopener"><svg><use href="#i-ext"/></svg>New tab</a>
+    <button id="player-close" class="btn tiny danger"><svg><use href="#i-x"/></svg>Close</button>
+  </div>
+  <div class="frame-wrap">
     <iframe id="frame" title="Game" allow="fullscreen; autoplay; gamepad; clipboard-write"
       sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-popups allow-modals allow-downloads allow-orientation-lock"></iframe>
-  </dialog>
-
-  <dialog id="details" class="sheet" aria-labelledby="details-title">
-    <div class="details">
-      <div id="details-art" class="details-art"></div>
-      <div>
-        <h2 id="details-title"></h2>
-        <p id="details-meta" class="muted"></p>
-        <div id="details-actions" class="row"></div>
+    <div id="player-loading" class="player-loading">
+      <div class="spin"></div>
+      <p class="muted">Loading <b id="load-name"></b>…</p>
+    </div>
+    <div id="player-fallback" class="player-fallback" hidden>
+      <svg class="bigico"><use href="#i-pad"/></svg>
+      <h3>Not loading?</h3>
+      <p class="muted">The game may be down, or your blocker may be holding it. Open it in a new tab, or host the repo yourself.</p>
+      <div class="row-c">
+        <a id="fb-tab" class="btn primary" target="_blank" rel="noopener"><svg><use href="#i-ext"/></svg>Open in new tab</a>
+        <button id="fb-publish" class="btn"><svg><use href="#i-zip"/></svg>Publish it yourself</button>
+        <button id="fb-reload" class="btn"><svg><use href="#i-refresh"/></svg>Retry</button>
       </div>
     </div>
-    <button id="details-close" class="details-close">Close</button>
-  </dialog>
+  </div>
+</dialog>
 
-  <dialog id="publish" class="sheet" aria-labelledby="publish-title">
-    <div class="sheet-head">
-      <h2 id="publish-title"></h2>
-      <button id="publish-close">Close</button>
+<!-- ============ DETAILS ============ -->
+<dialog id="details" class="sheet" aria-labelledby="details-title">
+  <button class="iconbtn details-close" data-close="details" aria-label="Close details"><svg><use href="#i-x"/></svg></button>
+  <div class="details">
+    <div id="details-art" class="details-art"></div>
+    <div class="details-txt">
+      <h2 id="details-title"></h2>
+      <p id="details-meta" class="muted"></p>
+      <div id="details-actions" class="row-c"></div>
     </div>
-    <p class="muted">No play link, or it's down? Host the repo yourself with one of these, then play it.</p>
-    <ol id="methods" class="methods"></ol>
-  </dialog>
+  </div>
+</dialog>
 
-  <script src="data.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+<!-- ============ PUBLISH ============ -->
+<dialog id="publish" class="sheet" aria-labelledby="publish-title">
+  <div class="sheet-head">
+    <h2 id="publish-title"></h2>
+    <button class="iconbtn" data-close="publish" aria-label="Close publish options"><svg><use href="#i-x"/></svg></button>
+  </div>
+  <p class="muted">No play link, or it's down? Host the repo yourself with one of these, then play it.</p>
+  <ol id="methods" class="methods"></ol>
+</dialog>
+
+<div id="toasts" class="toasts" popover="manual" aria-live="polite"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
 </body>
 </html>
