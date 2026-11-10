@@ -28,6 +28,47 @@ const list = v => DATA[v] || [];
 const view = () => { const v = location.hash.slice(1); return v in VIEWS ? v : 'games'; };
 const isHome = () => document.documentElement.dataset.mode === 'home';
 const playable = v => list(v).filter(g => g.play).length;
+const reduceMotion = () => document.documentElement.dataset.motion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE = 'cubic-bezier(.22,.9,.28,1)';
+const swapAnims = new WeakMap();
+function fadeSwap(el, fn) {
+  if (reduceMotion()) { fn(); return; }
+  const prev = swapAnims.get(el); if (prev) prev.cancel();
+  const out = el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(6px)' }], { duration: 110, easing: 'ease-in', fill: 'forwards' });
+  swapAnims.set(el, out);
+  out.onfinish = () => {
+    fn();
+    out.cancel();
+    const inn = el.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 200, easing: 'ease-out' });
+    swapAnims.set(el, inn);
+    inn.onfinish = () => swapAnims.delete(el);
+  };
+}
+const closeTimers = new Map();
+function openDialog(d) {
+  clearTimeout(closeTimers.get(d)); closeTimers.delete(d);
+  d.classList.remove('closing');
+  if (!d.open) d.showModal();
+}
+function closeDialog(d) {
+  if (!d.open || d.classList.contains('closing')) return;
+  if (reduceMotion()) { d.close(); return; }
+  d.classList.add('closing');
+  const ms = d.classList.contains('boot') || d.classList.contains('player') ? 260 : 240;
+  closeTimers.set(d, setTimeout(() => {
+    closeTimers.delete(d); d.classList.remove('closing'); d.close();
+    if (d.id === 'boot' && isHome() && !document.querySelector('dialog[open]')) {
+      const t = $('row').querySelector('[aria-current="true"]');
+      if (t) t.focus({ preventScroll: true });
+    }
+  }, ms));
+}
+document.querySelectorAll('dialog').forEach(d => d.addEventListener('cancel', e => {
+  e.preventDefault();
+  if (d.id === 'boot' && $('boot-pick').hidden) return;
+  closeDialog(d);
+}));
+function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 
 /* ---------- sound ---------- */
 let soundOn = store.get('gp-sound') !== '0';
@@ -67,6 +108,7 @@ function toggleSound() {
   soundOn = !soundOn;
   store.set('gp-sound', soundOn ? '1' : '0');
   paintSound();
+  document.querySelectorAll('[data-sound]').forEach(pop);
   if (soundOn) SFX.toggle();
   toast(soundOn ? 'Sounds on' : 'Sounds muted', soundOn ? 'i-vol' : 'i-vol-x');
 }
@@ -80,7 +122,10 @@ function toast(msg, icon = 'i-check') {
   box.appendChild(el);
   while (box.children.length > 3) box.firstElementChild.remove();
   if (box.showPopover) { try { if (box.matches(':popover-open')) box.hidePopover(); box.showPopover(); } catch {} }
-  setTimeout(() => { el.remove(); if (!box.children.length && box.hidePopover) { try { box.hidePopover(); } catch {} } }, 2400);
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => { el.remove(); if (!box.children.length && box.hidePopover) { try { box.hidePopover(); } catch {} } }, 230);
+  }, 2400);
 }
 
 /* ---------- covers ---------- */
@@ -104,7 +149,9 @@ function toggleFav(g) {
   else { favs.add(g.id); toast(`Added ${g.name} to favorites`, 'i-star'); SFX.fav(); }
   store.set('gp-favs', JSON.stringify([...favs]));
   paintFavs(g.id);
-  if (filter === 'favs') render();
+  document.querySelectorAll(`[data-favid="${CSS.escape(g.id)}"]`).forEach(b => { if (b.getAttribute('aria-pressed') === 'true') pop(b); });
+  if (rowItems[sel] && rowItems[sel].id === g.id && favs.has(g.id)) pop($('hero-fav'));
+  if (filter === 'favs') fadeSwap($('grid'), render);
 }
 function pushRecent(id) {
   recentIds = [id, ...recentIds.filter(x => x !== id)].slice(0, 12);
@@ -128,7 +175,7 @@ function launch(g) {
   $('player-loading').classList.remove('done');
   $('player-fallback').hidden = true;
   $('frame').src = g.play;
-  $('player').showModal();
+  openDialog($('player'));
   clearTimeout(loadTimer);
   loadTimer = setTimeout(() => { if (!loaded) $('player-fallback').hidden = false; }, 9000);
 }
@@ -149,7 +196,7 @@ $('frame').addEventListener('load', () => {
   $('player-fallback').hidden = true;
 });
 $('player').addEventListener('close', () => { clearTimeout(loadTimer); $('frame').src = 'about:blank'; playerGame = null; });
-$('player-close').addEventListener('click', () => { SFX.back(); $('player').close(); });
+$('player-close').addEventListener('click', () => { SFX.back(); closeDialog($('player')); });
 $('player-full').addEventListener('click', () => $('frame').requestFullscreen().catch(() => toast('Fullscreen unavailable', 'i-info')));
 $('player-reload').addEventListener('click', reloadFrame);
 $('player-help').addEventListener('click', () => { $('player-fallback').hidden = !$('player-fallback').hidden; });
@@ -197,6 +244,7 @@ function render() {
   if (sort === 'recent') shown.sort((a, b) => (recentIds.indexOf(b.id) - recentIds.indexOf(a.id)) || a.name.localeCompare(b.name));
   if (sort === 'play') shown.sort((a, b) => !a.play - !b.play || a.name.localeCompare(b.name));
   $('count').textContent = `${shown.length} of ${items.length}`;
+  if (!reduceMotion()) $('count').animate([{ opacity: .35 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
   $('grid').innerHTML = shown.length ? shown.map(card).join('')
     : `<p class="message">${items.length ? 'Nothing matches. Try another search or filter.' : 'Nothing here yet.'}</p>`;
 }
@@ -215,7 +263,7 @@ function details(g) {
     g.repo && link(g.repo, 'Repo'),
     `<button class="btn" data-d="fav" data-favid="${esc(g.id)}" aria-pressed="${favs.has(g.id)}"><svg><use href="#i-star"/></svg>Favorite</button>`,
   ].filter(Boolean).join('');
-  $('details').showModal();
+  openDialog($('details'));
 }
 
 /* ---------- publish ---------- */
@@ -253,13 +301,14 @@ function publish(g) {
       <div class="row-c">${btn(`https://codespaces.new/${owner}/${repo}`, 'Open Codespace', true)}<button class="btn" data-copy="${esc(serve)}"><svg><use href="#i-copy"/></svg>Copy command</button></div>`],
   ];
   $('publish-title').textContent = g.name;
-  $('methods').innerHTML = methods.map(([title, note, body]) => `<li><h3>${title}<em>${note}</em></h3>${body}</li>`).join('');
-  $('publish').showModal();
+  $('methods').innerHTML = methods.map(([title, note, body], i) => `<li style="--d:${i * .06}s"><h3>${title}<em>${note}</em></h3>${body}</li>`).join('');
+  openDialog($('publish'));
   SFX.open();
 }
 function copyText(text, btn) {
   const done = () => {
     btn.innerHTML = '<svg><use href="#i-check"/></svg>Copied';
+    pop(btn);
     setTimeout(() => { btn.innerHTML = '<svg><use href="#i-copy"/></svg>Copy command'; }, 1600);
   };
   const fallback = () => {
@@ -281,12 +330,16 @@ function rowFor(t) {
   const rest = items.filter(g => !first.includes(g)).sort((a, b) => !a.img - !b.img || hash(day + a.id) - hash(day + b.id));
   return [...first, ...rest].slice(0, 30);
 }
-const tile = (g, i) => `<button class="tile-g" data-i="${i}" style="--h:${hue(g)}" aria-label="${esc(g.name)}">${artHTML(g)}</button>`;
+const tile = (g, i) => `<button class="tile-g" data-i="${i}" style="--h:${hue(g)};--d:${Math.min(i, 20) * .025}s" aria-label="${esc(g.name)}">${artHTML(g)}</button>`;
+let rowEnterTimer = null;
 function renderHome() {
   document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   rowItems = rowFor(tab);
-  $('row').innerHTML = rowItems.map(tile).join('') +
+  const row = $('row');
+  row.innerHTML = rowItems.map(tile).join('') +
     `<button class="tile-g lib" data-act="library"><span class="pcover">All ${tab}</span></button>`;
+  row.classList.remove('enter'); void row.offsetWidth; row.classList.add('enter');
+  clearTimeout(rowEnterTimer); rowEnterTimer = setTimeout(() => row.classList.remove('enter'), 1000);
   select(Math.min(sel, Math.max(rowItems.length - 1, 0)), false);
 }
 const artA = $('art-a'), artB = $('art-b');
@@ -299,31 +352,60 @@ function setArt(url) {
   next.onload = () => { next.classList.add('on'); active.classList.remove('on'); next.onload = null; };
   next.src = url;
 }
+let heroAnims = [], heroSeq = 0, lastHeroId = null;
 function select(i, scroll = true) {
   sel = i;
-  $('row').querySelectorAll('[data-i]').forEach(t => t.setAttribute('aria-current', String(+t.dataset.i === i)));
+  const row = $('row');
+  row.querySelectorAll('[data-i]').forEach(t => t.setAttribute('aria-current', String(+t.dataset.i === i)));
+  row.querySelectorAll('.tile-g.pick').forEach(t => t.classList.remove('pick'));
   const g = rowItems[i];
-  $('hero-kicker').textContent = tab === 'games' ? `Games · ${playable('games')} playable` : tab === 'apps' ? `Apps · ${list('apps').length} tools` : `Movies · ${list('movies').length} services`;
-  $('hero-title').textContent = g ? g.name : '';
-  $('hero-meta').textContent = g ? [g.note || host(g.play), g.tab && 'opens in a new tab'].filter(Boolean).join(' · ') : '';
+  const tileEl = row.querySelector(`[data-i="${i}"]`);
+  if (tileEl) { void tileEl.offsetWidth; tileEl.classList.add('pick'); }
   $('hero-play').querySelector('span').textContent = tab === 'games' ? 'Play' : 'Open';
   $('hero-fav').setAttribute('aria-pressed', String(g && favs.has(g.id)));
   setArt(coversOn && g ? g.img : '');
-  if (scroll && g) {
-    const t = $('row').querySelector(`[data-i="${i}"]`);
-    if (t) t.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+  const seq = ++heroSeq;
+  const els = [$('hero-kicker'), $('hero-title'), $('hero-meta')];
+  const apply = () => {
+    $('hero-kicker').textContent = tab === 'games' ? `Games · ${playable('games')} playable` : tab === 'apps' ? `Apps · ${list('apps').length} tools` : `Movies · ${list('movies').length} services`;
+    $('hero-title').textContent = g ? g.name : '';
+    $('hero-meta').textContent = g ? [g.note || host(g.play), g.tab && 'opens in a new tab'].filter(Boolean).join(' · ') : '';
+    lastHeroId = g ? g.id : null;
+  };
+  heroAnims.forEach(a => a.cancel()); heroAnims = [];
+  if (reduceMotion() || (g && g.id === lastHeroId)) apply();
+  else {
+    const outs = els.map(el => el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-8px)' }], { duration: 130, easing: 'ease-in', fill: 'forwards' }));
+    heroAnims = outs;
+    Promise.all(outs.map(a => a.finished.catch(() => {}))).then(() => {
+      if (seq !== heroSeq) return;
+      heroAnims.forEach(a => a.cancel()); heroAnims = [];
+      apply();
+      heroAnims = els.map((el, k) => el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 300, delay: k * 45, easing: EASE, fill: 'backwards' }));
+    });
   }
+  if (scroll && g && tileEl) tileEl.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
 }
+let modeTimer = null;
 function setMode(mode) {
-  document.documentElement.dataset.mode = mode;
-  if (mode === 'home') {
-    renderHome();
-    const t = $('row').querySelector('[aria-current="true"]') || $('row').firstElementChild;
-    if (t && !document.querySelector('dialog[open]')) t.focus({ preventScroll: true });
-  } else render();
+  clearTimeout(modeTimer);
+  $('home').classList.remove('view-out'); $('lib').classList.remove('view-out');
+  const root = document.documentElement, cur = root.dataset.mode;
+  const apply = () => {
+    root.dataset.mode = mode;
+    if (mode === 'home') {
+      renderHome();
+      const t = $('row').querySelector('[aria-current="true"]') || $('row').firstElementChild;
+      if (t && !document.querySelector('dialog[open]')) t.focus({ preventScroll: true });
+    } else render();
+  };
+  if (cur === mode || reduceMotion()) { apply(); return; }
+  const outEl = cur === 'home' ? $('home') : $('lib');
+  outEl.classList.add('view-out');
+  modeTimer = setTimeout(() => { outEl.classList.remove('view-out'); apply(); }, 170);
 }
 function act(name) {
-  if (name === 'settings') { $('settings').showModal(); SFX.open(); return; }
+  if (name === 'settings') { openDialog($('settings')); SFX.open(); return; }
   if (name === 'random') {
     const items = list(tab).filter(g => g.play);
     if (items.length) { toast('Random pick', 'i-shuffle'); launch(items[Math.floor(Math.random() * items.length)]); }
@@ -384,7 +466,7 @@ function padLoop(t) {
   }
   if (padPress('b', btn(1), t)) {
     const dialogs = [...document.querySelectorAll('dialog[open]')];
-    if (dialogs.length) dialogs[dialogs.length - 1].close();
+    if (dialogs.length) closeDialog(dialogs[dialogs.length - 1]);
     else if (!isHome() && document.documentElement.dataset.theme !== 'normal') setMode('home');
     SFX.back();
   }
@@ -401,6 +483,7 @@ function setTheme(name) {
   store.set('gp-theme', name);
   document.querySelector('meta[name="theme-color"]').setAttribute('content', THEMES[name].color);
   document.querySelectorAll('[data-pick]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pick === name)));
+  if (!reduceMotion()) { const w = $('theme-wipe'); w.classList.remove('go'); void w.offsetWidth; w.classList.add('go'); }
   setMode(name === 'normal' ? 'library' : 'home');
 }
 document.querySelectorAll('[data-themes]').forEach(el => {
@@ -415,7 +498,7 @@ $('pref-covers').checked = coversOn;
 $('pref-covers').addEventListener('change', e => {
   coversOn = e.target.checked;
   store.set('gp-covers', coversOn ? '1' : '0');
-  render(); if (isHome()) renderHome();
+  fadeSwap($('grid'), render); if (isHome()) fadeSwap($('row'), renderHome);
   toast(coversOn ? 'Remote cover art on' : 'Procedural covers only', 'i-grid');
 });
 const motionOff = store.get('gp-motion') === '1' || matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -430,8 +513,8 @@ $('pref-motion').addEventListener('change', e => {
 document.addEventListener('click', e => {
   const pick = e.target.closest('[data-pick]');
   if (pick) {
-    if (pick.closest('#boot')) $('boot').close();
-    if (pick.closest('#settings')) $('settings').close();
+    if (pick.closest('#boot')) closeDialog($('boot'));
+    if (pick.closest('#settings')) closeDialog($('settings'));
     setTheme(pick.dataset.pick);
     SFX.toggle();
     toast(`${THEMES[pick.dataset.pick].label} theme`, 'i-logo');
@@ -440,7 +523,7 @@ document.addEventListener('click', e => {
   const snd = e.target.closest('[data-sound]');
   if (snd) { toggleSound(); return; }
   const close = e.target.closest('[data-close]');
-  if (close) { $(close.dataset.close).close(); SFX.back(); return; }
+  if (close) { closeDialog($(close.dataset.close)); SFX.back(); return; }
   const a = e.target.closest('#home [data-act]');
   if (a) act(a.dataset.act);
 });
@@ -455,21 +538,21 @@ $('details-actions').addEventListener('click', e => {
   const b = e.target.closest('[data-d]');
   if (!b) return;
   if (b.dataset.d === 'fav') { toggleFav(detail); return; }
-  $('details').close();
+  closeDialog($('details'));
   if (b.dataset.d === 'play') launch(detail);
   if (b.dataset.d === 'publish') publish(detail);
 });
 $('filters').addEventListener('click', e => {
   const b = e.target.closest('button');
-  if (b) { filter = b.dataset.filter; render(); SFX.toggle(); }
+  if (b) { filter = b.dataset.filter; fadeSwap($('grid'), render); SFX.toggle(); }
 });
-$('sort').addEventListener('change', e => { sort = e.target.value; render(); });
+$('sort').addEventListener('change', e => { sort = e.target.value; fadeSwap($('grid'), render); });
 $('methods').addEventListener('click', e => {
   const b = e.target.closest('[data-copy]');
   if (b) copyText(b.dataset.copy, b);
 });
 let searchTimer = null;
-$('search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(render, 120); });
+$('search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => fadeSwap($('grid'), render), 120); });
 
 let armed = false;
 $('row').addEventListener('focusin', e => { const t = e.target.closest('[data-i]'); if (t) { select(+t.dataset.i); SFX.move(); } });
@@ -479,13 +562,13 @@ $('row').addEventListener('click', e => {
   if (t && (e.detail === 0 || armed)) launch(rowItems[+t.dataset.i]);
 });
 document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
-  tab = b.dataset.tab; sel = 0; renderHome(); SFX.toggle();
+  tab = b.dataset.tab; sel = 0; fadeSwap($('row'), renderHome); SFX.toggle();
 }));
 $('hero-play').addEventListener('click', () => rowItems[sel] && launch(rowItems[sel]));
 $('hero-info').addEventListener('click', () => rowItems[sel] && details(rowItems[sel]));
 $('hero-fav').addEventListener('click', () => rowItems[sel] && toggleFav(rowItems[sel]));
 $('home-open').addEventListener('click', () => { setMode('home'); SFX.back(); });
-$('settings-open').addEventListener('click', () => { $('settings').showModal(); SFX.open(); });
+$('settings-open').addEventListener('click', () => { openDialog($('settings')); SFX.open(); });
 
 document.addEventListener('keydown', e => {
   if (document.querySelector('dialog[open]')) return;
@@ -494,7 +577,7 @@ document.addEventListener('keydown', e => {
   if (isHome()) navigate(e);
   else if (e.key === 'Escape' && document.documentElement.dataset.theme !== 'normal') { setMode('home'); SFX.back(); }
 });
-addEventListener('hashchange', () => { $('search').value = ''; render(); });
+addEventListener('hashchange', () => { $('search').value = ''; fadeSwap($('grid'), render); });
 
 const tick = () => { $('clock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
 tick();
@@ -510,11 +593,10 @@ function finishBoot(error) {
     $('boot-error').hidden = false;
     return;
   }
-  $('boot').close();
+  closeDialog($('boot'));
 }
 addEventListener('error', e => finishBoot(`Something went wrong: ${e.message}.`));
 if ($('boot').showModal) $('boot').showModal(); else $('boot').setAttribute('open', '');
-$('boot').addEventListener('cancel', e => { if ($('boot-pick').hidden) e.preventDefault(); });
 
 /* ---------- init ---------- */
 const n = DATA.games.length, p = playable('games');
